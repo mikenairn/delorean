@@ -2,24 +2,25 @@ package utils
 
 import (
 	"fmt"
-	"github.com/operator-framework/api/pkg/operators"
-	olmapiv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/operator-framework/operator-registry/pkg/registry"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/operator-framework/api/pkg/operators"
+	olmapiv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	"github.com/operator-framework/operator-registry/pkg/registry"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 // ReadCSVFromBundleDirectory tries to parse every YAML file in the directory and see if they are CSV.
 // According to the strict one CSV rule for every bundle, we return the first file that is considered a CSV type.
-func ReadCSVFromBundleDirectory(bundleDir string) (*olmapiv1alpha1.ClusterServiceVersion, error) {
+func ReadCSVFromBundleDirectory(bundleDir string) (*olmapiv1alpha1.ClusterServiceVersion, string, error) {
 	dirContent, err := ioutil.ReadDir(bundleDir)
 	if err != nil {
-		return nil, fmt.Errorf("error reading bundle directory %s, %v", bundleDir, err)
+		return nil, "", fmt.Errorf("error reading bundle directory %s, %v", bundleDir, err)
 	}
 
 	files := []string{}
@@ -49,12 +50,12 @@ func ReadCSVFromBundleDirectory(bundleDir string) (*olmapiv1alpha1.ClusterServic
 
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCSV.UnstructuredContent(),
 			&csv); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
-		return &csv, nil
+		return &csv, file, nil
 	}
-	return nil, fmt.Errorf("no ClusterServiceVersion object found in %s", bundleDir)
+	return nil, "", fmt.Errorf("no ClusterServiceVersion object found in %s", bundleDir)
 
 }
 
@@ -119,7 +120,7 @@ func GetCurrentCSV(packageDir string) (*olmapiv1alpha1.ClusterServiceVersion, st
 	for _, bundlePath := range bundleDirs {
 		if bundlePath.IsDir() {
 			bundleDir := filepath.Join(packageDir, bundlePath.Name())
-			csv, err := ReadCSVFromBundleDirectory(bundleDir)
+			csv, _, err := ReadCSVFromBundleDirectory(bundleDir)
 			if err != nil {
 				return nil, "", err
 			}
