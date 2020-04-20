@@ -22,18 +22,29 @@ var processManifestCmd = &cobra.Command{
 	Short: "Process a given manifest to meet the rhmi requirements.",
 	Long:  `Process a given manifest to meet the rhmi requirements.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		//verify it's a manifest dir.
+		err := utils.VerifyManifestDirs(manifestDir)
+		if err != nil {
+			handleError(err)
+		}
+		//get the latest csv
+		csv, bundleDir, err := utils.GetCurrentCSV(manifestDir)
+		if err != nil {
+			handleError(err)
+		}
+
 		//get csvfile
-		csv, filename, err := utils.ReadCSVFromBundleDirectory(manifestDir)
+		csv, filename, err := utils.ReadCSVFromBundleDirectory(bundleDir)
 		if err != nil {
 			handleError(err)
 		}
 		if filename == "" {
 			handleError(fmt.Errorf("No csv file found in the directory"))
 		}
-		fmt.Printf("Filename: %s", filename)
+
 		//populate a csv object from the file
-		filepath := fmt.Sprintf("%s/%s", manifestDir, filename)
-		fmt.Printf("Filepath: %s", filepath)
+		filepath := fmt.Sprintf("%s/%s", bundleDir, filename)
+
 		err = utils.PopulateObjectFromYAML(filepath, csv)
 		if err != nil {
 			handleError(err)
