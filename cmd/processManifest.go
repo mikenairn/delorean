@@ -56,7 +56,9 @@ var processManifestCmd = &cobra.Command{
 			handleError(err)
 		}
 		fmt.Printf("Sorted csvs: %s", sortedCSVs)
-		csv.Spec.Replaces = sortedCSVs[(sortedCSVs.Len() - 2)].Name
+		if sortedCSVs.Len() > 1 {
+			csv.Spec.Replaces = sortedCSVs[(sortedCSVs.Len() - 2)].Name
+		}
 
 		updateEnvs(csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs)
 		//write the file out using the object

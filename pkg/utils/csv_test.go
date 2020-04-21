@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/blang/semver"
 	"github.com/operator-framework/operator-registry/pkg/registry"
 )
 
@@ -115,6 +116,61 @@ func TestGetPackageManifest(t *testing.T) {
 	}
 }
 
+func TestGetSortedCSVNames(t *testing.T) {
+	type args struct {
+		packageDir string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    csvNames
+		wantErr bool
+	}{
+		{
+			name: "successful return of sortedcsvnames",
+			args: args{"./testdata/validManifests/3scale2"},
+			want: []csvName{
+				{
+					Name: "3scale-operator.v0.4.0",
+					Version: semver.Version{
+						Major: 0,
+						Minor: 4,
+						Patch: 0,
+					},
+				},
+				{
+					Name: "3scale-operator.v0.5.0",
+					Version: semver.Version{
+						Major: 0,
+						Minor: 5,
+						Patch: 0,
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetSortedCSVNames(tt.args.packageDir)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetCurrentCSV() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if got != nil {
+					if got[0].Name != tt.want[0].Name {
+						t.Errorf("GetCurrentCSV() got1 = %v, want %v", got, tt.want)
+					}
+				} else {
+					t.Errorf("GetCurrentCSV() got = %v", got)
+				}
+			}
+		})
+	}
+
+}
+
 func TestGetCurrentCSV(t *testing.T) {
 	type args struct {
 		packageDir string
@@ -178,6 +234,7 @@ func TestReadCSVFromBundleDirectory(t *testing.T) {
 		name    string
 		args    args
 		want    string
+		want1   string
 		wantErr bool
 	}{
 		{
@@ -185,6 +242,7 @@ func TestReadCSVFromBundleDirectory(t *testing.T) {
 			args:    args{"./testdata/validManifests/3scale/0.4.0"},
 			wantErr: false,
 			want:    "3scale-operator.v0.4.0",
+			want1:   "3scale-operator.v0.4.0.clusterserviceversion.yaml",
 		},
 		{
 			name:    "invalid bundle dir",
@@ -199,7 +257,7 @@ func TestReadCSVFromBundleDirectory(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ReadCSVFromBundleDirectory(tt.args.bundleDir)
+			got, got1, err := ReadCSVFromBundleDirectory(tt.args.bundleDir)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadCSVFromBundleDirectory() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -207,10 +265,17 @@ func TestReadCSVFromBundleDirectory(t *testing.T) {
 			if !tt.wantErr {
 				if got != nil {
 					if got.Name != tt.want {
-						t.Errorf("GetCurrentCSV() got1 = %v, want %v", got.Name, tt.want)
+						t.Errorf("GetCurrentCSV() got = %v, want %v", got.Name, tt.want)
 					}
 				} else {
 					t.Errorf("GetCurrentCSV() got = %v", got)
+				}
+				if got1 != "" {
+					if got1 != tt.want1 {
+						t.Errorf("GetCurrentCSV() got1 = %v, want %v", got1, tt.want1)
+					}
+				} else {
+					t.Errorf("GetCurrentCSV() got1 = %v", got1)
 				}
 			}
 		})
