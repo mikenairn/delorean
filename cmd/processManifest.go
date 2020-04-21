@@ -27,13 +27,13 @@ var processManifestCmd = &cobra.Command{
 		if err != nil {
 			handleError(err)
 		}
-		//get the latest csv
-		csv, bundleDir, err := utils.GetCurrentCSV(manifestDir)
+		//get current csv bundledir
+		_, bundleDir, err := utils.GetCurrentCSV(manifestDir)
 		if err != nil {
 			handleError(err)
 		}
 
-		//get csvfile
+		//get csvfile from bundledir
 		csv, filename, err := utils.ReadCSVFromBundleDirectory(bundleDir)
 		if err != nil {
 			handleError(err)
@@ -49,9 +49,15 @@ var processManifestCmd = &cobra.Command{
 		if err != nil {
 			handleError(err)
 		}
-		// make the updates to that file
-		// TODO Get the correct replaces value and update it.
-		csv.Spec.Replaces = "Some Replaces"
+
+		//Get the correct replaces value and update it.
+		sortedCSVs, err := utils.GetSortedCSVNames(manifestDir)
+		if err != nil {
+			handleError(err)
+		}
+		fmt.Printf("Sorted csvs: %s", sortedCSVs)
+		csv.Spec.Replaces = sortedCSVs[(sortedCSVs.Len() - 2)].Name
+
 		updateEnvs(csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs)
 		//write the file out using the object
 		err = utils.WriteObjectToYAML(csv, filepath)
